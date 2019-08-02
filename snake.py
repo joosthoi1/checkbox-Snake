@@ -1,100 +1,138 @@
-import sys, keyboard, time
-from random import randint
+import gridcreation as gc
 from tkinter import messagebox
-sys.path.append(sys.path[0]+'\\..')
-from gridcreation_class import grid
-grid1 = grid(20, 20)
-master = grid1.master
+import random
 
-def reload():
-    for i in grid1.mylist:
-        i.deselect()
-        i.configure(bg='light gray')
+class snake:
+    def __init__(self):
+        self.grid = gc.grid_reverse(20,20)
+        self.root = self.grid.root
 
-    var_states1()
-def dead(bodylength):
-    messagebox1 = messagebox.askquestion('Game Over', f'You died with a length of {bodylength}\nWould you like to play again?')
-    if messagebox1 == 'yes':
-        reload()
-    else:
-        master.destroy()
+        self.root.focus_force()
+        self.setup()
 
-def var_states1():
-    y, x = int(grid1.numbery/2), 1
-    bodylength = 3
-    dir = 'Right'
-    fruitneeded = False
-    snake_body = []
-    tick = 0
-    needfruit = True
-    while 1:
-        if (keyboard.is_pressed('w') or keyboard.is_pressed('up')) and dir != 'Down':  # if key 'q' is pressed
-            dir = 'Up'
-        elif (keyboard.is_pressed('s') or keyboard.is_pressed('down')) and dir != 'Up':  # if key 'q' is pressed
-            dir = 'Down'
-        elif (keyboard.is_pressed('a') or keyboard.is_pressed('left')) and dir != 'Right':  # if key 'q' is pressed
-            dir = 'Left'
-        elif (keyboard.is_pressed('d') or keyboard.is_pressed('right')) and dir != 'Left':  # if key 'q' is pressed
-            dir = 'Right'
+        self.root.bind("<Right>", self.right)
+        self.root.bind("d", self.right)
+        self.root.bind("<Left>", self.left)
+        self.root.bind("a", self.left)
+        self.root.bind("<Up>", self.up)
+        self.root.bind("w", self.up)
+        self.root.bind("<Down>", self.down)
+        self.root.bind("s", self.down)
 
-        print(tick)
+        self.loop()
+        self.root.mainloop()
 
-        if tick == 1:
+    def setup(self):
+        self.x = 0
+        self.y = self.grid.numbery//2
+        self.dir = "Right"
+        self.length = 10
+        self.body = []
+        self.need_fruit = True
+        self.death_on_wall = True
+
+    def loop(self):
+        self.previous_dir = self.dir
+
+        if self.need_fruit:
+            while self.need_fruit:
+                randcoordsx = random.randint(1, self.grid.numberx)
+                randcoordsy = random.randint(1, self.grid.numbery)
+                if not self.grid.coords(randcoordsx,randcoordsy) in self.body:
+                    self.fruit_place = self.grid.coords(randcoordsx,randcoordsy)
+                    box = self.grid.boxlist[
+                        self.grid.coords(randcoordsx,randcoordsy)
+                    ]
+                    box.select()
+                    box.configure(bg='red', fg='red')
+
+                    self.need_fruit = False
+
+        if self.dir == 'Right':
+            self.x+=1
+            if self.x == self.grid.numberx+1:
+                if self.death_on_wall:
+                    self.dead(self.length)
+                    return
+                else:
+                    self.x = 1
+        if self.dir == 'Left':
+            self.x-=1
+            if self.x == 0:
+                if self.death_on_wall:
+                    self.dead(self.length)
+                    return
+                else:
+                    self.x = self.grid.numberx
+        if self.dir == 'Up':
+            self.y-=1
+            if self.y == 0:
+                if self.death_on_wall:
+                    self.dead(self.length)
+                    return
+                else:
+                    self.y = self.grid.numbery
+        if self.dir == 'Down':
+            self.y+=1
+            if self.y == self.grid.numbery+1:
+                if self.death_on_wall:
+                    self.dead(self.length)
+                    return
+                else:
+                    self.y = 1
 
 
-            if needfruit:
-                while 1:
-                    randcoordsx, randcoordsy = randint(1, grid1.numberx), randint(1, grid1.numbery)
-                    if grid1.coords(randcoordsx,randcoordsy) in snake_body:
-                        pass
-                    else:
-                        fruitplace = grid1.coords(randcoordsx,randcoordsy)
-                        grid1.mylist[grid1.coords(randcoordsx,randcoordsy)].select()
-                        grid1.mylist[grid1.coords(randcoordsx,randcoordsy)].configure(bg='red', fg='red')
-                        needfruit = False
-                        break
-            tick = 0
+        self.grid.boxlist[self.grid.coords(self.x, self.y)].select()
+        self.grid.boxlist[self.grid.coords(self.x, self.y)].configure(foreground='green',bg='light gray')
 
-            grid1.mylist[grid1.coords(x, y)].select()
-            grid1.mylist[grid1.coords(x, y)].configure(foreground='green',bg='light gray')
-            print(x)
-            if len(snake_body) >= bodylength:
-                snake_body.insert(0, grid1.coords(x, y))
-                grid1.mylist[snake_body[-1]].deselect()
-                grid1.mylist[snake_body[-1]].configure(foreground='black')
-                snake_body.pop(-1)
-            else:
-                snake_body.insert(0, grid1.coords(x, y))
-            if snake_body[0] == fruitplace:
-                bodylength += 1
-                needfruit = True
-            if dir == 'Right':
-                x+=1
-            if dir == 'Left':
-                x-=1
-            if dir == 'Up':
-                y+=1
-            if dir == 'Down':
-                y-=1
+        if len(self.body) >= self.length:
+            self.body.insert(0, self.grid.coords(self.x, self.y))
+            if not self.body[0] == self.body[-1]:
+                body = self.grid.boxlist[self.body[-1]]
+                body.deselect()
+                body.configure(foreground='black')
+            self.body.pop(-1)
+        else:
+            self.body.insert(0, self.grid.coords(self.x, self.y))
 
-            if x == 21 and dir == 'Right':
-                x= 1
-            if x == 0 and dir == 'Left':
-                x= 20
-            if y == 21 and dir == 'Up':
-                y = 1
-            if y == 0 and dir == 'Down':
-                y = 20
-            if snake_body[0] in snake_body[1:]:
-                dead(bodylength)
+        if len(self.body) >= 1:
+            if self.body[0] in self.body[1:]:
+                self.dead(self.length)
+                return
 
-        print(tick)
-        tick += 1
-        try:
-            master.update()
-        except Exception:
-            pass
-        time.sleep(0.077)
+        if self.body[0] == self.fruit_place:
+            self.length += 1
+            self.need_fruit = True
 
-master.after(2,var_states1)
-master.mainloop()
+        self.root.after(100, self.loop)
+
+    def right(self, event=None):
+        if not self.previous_dir == "Left":
+            self.dir = "Right"
+    def left(self, event=None):
+        if not self.previous_dir == "Right":
+            self.dir = "Left"
+    def up(self, event=None):
+        if not self.previous_dir == "Down":
+            self.dir = "Up"
+    def down(self, event=None):
+        if not self.previous_dir == "Up":
+            self.dir = "Down"
+
+    def dead(self, length):
+        messagebox1 = messagebox.askquestion('Game Over', f'You died with a length of {length}\nWould you like to play again?')
+        if messagebox1 == 'yes':
+            self.reload()
+        else:
+            self.grid.root.destroy()
+
+    def reload(self):
+        for i in self.grid.boxlist:
+            i.deselect()
+            i.configure(bg='light gray')
+
+        self.setup()
+        self.loop()
+
+if __name__ == "__main__":
+    snake()
